@@ -1,6 +1,7 @@
 import { v4 } from 'uuid';
 
-import  { constructInvoice, addInvoiceItem, Invoice, InvoiceItem } from './Invoice'
+import  { constructInvoice, addInvoiceItem, payInvoice, Invoice, InvoiceItem } from './Invoice'
+import { PaymentServiceMock, getCalls, resetCalls } from './PaymentService'
 
 it('creates an Invoice object with a random id', ()=> {
 	const newInvoice:Invoice = constructInvoice();
@@ -39,4 +40,20 @@ it('adds an invoice item and updates the total amount on the invoice', () => {
 	expect(updatedInvoice.total).toBe(20)
 })
 
+it('updates an invoice status to paid when I pay the invoice', () => {
+	resetCalls();
+	const invoice = constructInvoice();
+	const paidInvoice = payInvoice(PaymentServiceMock, invoice);
+	expect(paidInvoice.status).toBe('paid');
+})
 
+it('calls out to payment processor with the correct amount', () => {
+	resetCalls();
+	const invoice = constructInvoice();
+	const invoiceWithItem = addInvoiceItem(invoice, { id: v4(), name: "test item", amount: 100 })
+	const paidInvoice = payInvoice(PaymentServiceMock, invoiceWithItem);
+
+	const paymentCalls = getCalls();
+	expect(paymentCalls.length).toBe(1);
+	expect(paymentCalls[0].amount).toBe(100);
+});
